@@ -1,0 +1,56 @@
+# Binaries
+heimdall
+mcpgw
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Build output
+/bin/
+/dist/
+
+# Go
+*.test
+*.out
+/vendor/
+
+# Environment and secrets
+.env
+.env.*
+*.key
+*.pem
+*.crt
+
+# Config with secrets
+config.local.yaml
+config.local.yml
+
+# Logs
+*.log
+/logs/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker
+.docker/
+
+# Terraform (if you add infra later)
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Test coverage
+coverage.out
+coverage.html
