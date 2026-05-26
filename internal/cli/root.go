@@ -14,7 +14,7 @@ func NewRootCommand() *cobra.Command {
 	rootCmd.AddCommand(newToolsCommand(&configPath))
 	rootCmd.AddCommand(newValidateCommand(&configPath))
 	rootCmd.AddCommand(newInitCommand())
-
+	rootCmd.AddCommand(newPolicyCommand())
 	return rootCmd
 }
 
