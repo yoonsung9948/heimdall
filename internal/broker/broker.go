@@ -14,7 +14,7 @@ import (
 
 type Broker interface {
 	Filter(context.Context, types.Identity) ([]*mcp.Tool, error)
-	Route(context.Context, types.Identity, string, upstream.CallToolParams) (upstream.CallToolResult, error)
+	Route(context.Context, types.Identity, string, *mcp.CallToolParams) (*mcp.CallToolResult, error)
 }
 
 type broker struct {
@@ -68,8 +68,8 @@ func (b *broker) Route(
 	ctx context.Context,
 	identity types.Identity,
 	toolName string,
-	params upstream.CallToolParams,
-) (upstream.CallToolResult, error) {
+	params *mcp.CallToolParams,
+) (*mcp.CallToolResult, error) {
 	req := policy.Request{
 		Identity: identity,
 		Action:   policy.ActionToolsCall,
@@ -80,19 +80,17 @@ func (b *broker) Route(
 	}
 	decision := b.policyEngine.Authorize(req)
 	if !decision.Allow {
-		return upstream.CallToolResult{}, ErrUnauthorized
+		return nil, ErrUnauthorized
 	}
 	client, clientName, err := b.registry.ClientForTool(ctx, toolName)
+	if err != nil {
+		return nil, fmt.Errorf("getting client: %w", err)
+	}
 	originalName := strings.TrimPrefix(toolName, clientName+".")
 	params.Name = originalName
-	if err != nil {
-		return upstream.CallToolResult{}, fmt.Errorf("getting client: %w", err)
-	}
 	res, err := client.Call(ctx, params)
 	if err != nil {
-		return upstream.CallToolResult{}, fmt.Errorf("calling tool %q: %w", params.Name, err)
+		return nil, fmt.Errorf("calling tool %q: %w", params.Name, err)
 	}
-	return upstream.CallToolResult{
-		Content: res.Content,
-	}, nil
+	return res, nil
 }

@@ -89,23 +89,15 @@ func Run(ctx context.Context, cfgPath string) error {
 			if !ok {
 				return nil, broker.ErrMissingIdentity
 			}
-			params := upstream.CallToolParams{
-				Name: t.Name,
-				Args: req.Params.Arguments,
+			params := &mcp.CallToolParams{
+				Name:      req.Params.Name,
+				Arguments: req.Params.Arguments,
 			}
 			res, err := b.Route(ctx, *identity, t.Name, params)
 			if err != nil {
 				return nil, err
 			}
-			return &mcp.CallToolResult{
-				Content: func() []mcp.Content {
-					var contents []mcp.Content
-					for _, raw := range res.Content {
-						contents = append(contents, &mcp.TextContent{Text: string(raw)})
-					}
-					return contents
-				}(),
-			}, nil
+			return res, nil
 		})
 	}
 	rm, err := broker.NewReceivingMiddleware(b)

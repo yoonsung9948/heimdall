@@ -2,7 +2,6 @@ package upstream
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -11,7 +10,7 @@ import (
 
 type UpstreamClient interface {
 	Tools(ctx context.Context) ([]*mcp.Tool, error)
-	Call(ctx context.Context, params CallToolParams) (*CallToolResult, error)
+	Call(ctx context.Context, params *mcp.CallToolParams) (*mcp.CallToolResult, error)
 }
 
 var (
@@ -48,35 +47,6 @@ func (s sdkClient) Tools(ctx context.Context) ([]*mcp.Tool, error) {
 	return tools, nil
 }
 
-type CallToolParams struct {
-	Name string
-	Args json.RawMessage
-}
-
-type CallToolResult struct {
-	Content []json.RawMessage
-}
-
-func (s sdkClient) Call(ctx context.Context, params CallToolParams) (*CallToolResult, error) {
-	p := &mcp.CallToolParams{
-		Name:      params.Name,
-		Arguments: params.Args,
-	}
-	res, err := s.session.CallTool(ctx, p)
-	if err != nil {
-		return nil, fmt.Errorf("calling tool %q: %w", params.Name, err)
-	}
-	var c []json.RawMessage
-
-	for _, content := range res.Content {
-		marshaled, err := content.MarshalJSON()
-		if err != nil {
-			return nil, fmt.Errorf("marshaling json: %w", err)
-		}
-		c = append(c, marshaled)
-	}
-
-	return &CallToolResult{
-		Content: c,
-	}, nil
+func (s sdkClient) Call(ctx context.Context, params *mcp.CallToolParams) (*mcp.CallToolResult, error) {
+	return s.session.CallTool(ctx, params)
 }
