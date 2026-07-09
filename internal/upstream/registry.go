@@ -8,7 +8,7 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/yoonsung9948/heimdall/internal/types"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 var (
@@ -22,14 +22,14 @@ type Registry struct {
 	mu        sync.RWMutex
 	routeMap  map[string]string
 	clientMap map[string]UpstreamClient
-	toolCache map[string][]types.ToolDefinition
+	toolCache map[string][]*mcp.Tool
 }
 
 func NewRegistry() *Registry {
 	return &Registry{
 		routeMap:  make(map[string]string),
 		clientMap: make(map[string]UpstreamClient),
-		toolCache: make(map[string][]types.ToolDefinition),
+		toolCache: make(map[string][]*mcp.Tool),
 	}
 }
 
@@ -50,30 +50,32 @@ func (r *Registry) Register(ctx context.Context, clientName string, client Upstr
 		return ErrDuplicateClient
 	}
 	r.clientMap[clientName] = client
-	r.toolCache[clientName] = append([]types.ToolDefinition(nil), tools...)
 	for _, tool := range tools {
-		toolName := clientName + "." + tool.Name
-		r.routeMap[toolName] = clientName
+		prefixed := clientName + "." + tool.Name
+		r.routeMap[prefixed] = clientName
+		copied := *tool
+		copied.Name = prefixed
+		r.toolCache[clientName] = append(r.toolCache[clientName], &copied)
 	}
 	return nil
 }
 
-func (r *Registry) AllTools(ctx context.Context) ([]types.ToolDefinition, error) {
+func (r *Registry) AllTools(ctx context.Context) ([]*mcp.Tool, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return slices.Concat(slices.Collect(maps.Values(r.toolCache))...), nil
 }
 
-func (r *Registry) ClientForTool(ctx context.Context, toolName string) (UpstreamClient, error) {
+func (r *Registry) ClientForTool(ctx context.Context, toolName string) (UpstreamClient, string, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	id, ok := r.routeMap[toolName]
 	if !ok {
-		return nil, ErrMissingTool
+		return nil, "", ErrMissingTool
 	}
 	client, ok := r.clientMap[id]
 	if !ok {
 		panic(fmt.Sprintf("invariant violated: route table references unknown upstream %q", id))
 	}
-	return client, nil
+	return client, id, nil
 }

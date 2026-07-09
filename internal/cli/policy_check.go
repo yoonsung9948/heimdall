@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yoonsung9948/heimdall/internal/policy"
+	"github.com/yoonsung9948/heimdall/internal/types"
 )
 
 func newPolicyCheckCommand() *cobra.Command {
@@ -33,7 +34,7 @@ func newPolicyCheckCommand() *cobra.Command {
 				return err
 			}
 			r := policy.Request{
-				Identity: policy.Identity{
+				Identity: types.Identity{
 					User:   user,
 					Client: client,
 					Groups: normalizedGroups,

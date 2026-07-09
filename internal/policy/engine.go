@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/yoonsung9948/heimdall/internal/types"
 )
 
 type Effect string
@@ -23,12 +25,6 @@ const (
 	ActionPromptsList   Action = "prompts/list"
 	ActionPromptsGet    Action = "prompts/get"
 )
-
-type Identity struct {
-	User   string
-	Client string
-	Groups []string
-}
 
 type SubjectSelector struct {
 	Users   []string
@@ -55,7 +51,7 @@ type ResourceSelector struct {
 }
 
 type Request struct {
-	Identity Identity
+	Identity types.Identity
 	Action   Action
 	Resource Resource
 }

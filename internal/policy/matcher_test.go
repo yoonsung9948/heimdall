@@ -1,6 +1,10 @@
 package policy
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/yoonsung9948/heimdall/internal/types"
+)
 
 func TestRuleMatches_SubjectSelectors(t *testing.T) {
 	tests := []struct {
@@ -19,7 +23,7 @@ func TestRuleMatches_SubjectSelectors(t *testing.T) {
 				},
 			},
 			req: Request{
-				Identity: Identity{
+				Identity: types.Identity{
 					User:   "alice@example.com",
 					Client: "unknown-client",
 					Groups: []string{"random"},
@@ -45,7 +49,7 @@ func TestRuleMatches_SubjectSelectors(t *testing.T) {
 				},
 			},
 			req: Request{
-				Identity: Identity{
+				Identity: types.Identity{
 					User:   "alice@example.com",
 					Client: "claude-desktop",
 					Groups: []string{"engineering"},
@@ -71,7 +75,7 @@ func TestRuleMatches_SubjectSelectors(t *testing.T) {
 				},
 			},
 			req: Request{
-				Identity: Identity{
+				Identity: types.Identity{
 					User:   "bob@example.com",
 					Client: "claude-desktop",
 					Groups: []string{"engineering"},
@@ -97,7 +101,7 @@ func TestRuleMatches_SubjectSelectors(t *testing.T) {
 				},
 			},
 			req: Request{
-				Identity: Identity{
+				Identity: types.Identity{
 					User:   "alice@example.com",
 					Client: "claude-desktop",
 					Groups: []string{"engineering"},
@@ -123,7 +127,7 @@ func TestRuleMatches_SubjectSelectors(t *testing.T) {
 				},
 			},
 			req: Request{
-				Identity: Identity{
+				Identity: types.Identity{
 					User:   "alice@example.com",
 					Client: "untrusted-client",
 					Groups: []string{"engineering"},
@@ -149,7 +153,7 @@ func TestRuleMatches_SubjectSelectors(t *testing.T) {
 				},
 			},
 			req: Request{
-				Identity: Identity{
+				Identity: types.Identity{
 					User:   "alice@example.com",
 					Client: "claude-desktop",
 					Groups: []string{"engineering", "platform"},
@@ -175,7 +179,7 @@ func TestRuleMatches_SubjectSelectors(t *testing.T) {
 				},
 			},
 			req: Request{
-				Identity: Identity{},
+				Identity: types.Identity{},
 				Action:   ActionToolsCall,
 				Resource: Resource{
 					Kind: ResourceKindTool,
@@ -199,7 +203,7 @@ func TestRuleMatches_SubjectSelectors(t *testing.T) {
 				},
 			},
 			req: Request{
-				Identity: Identity{
+				Identity: types.Identity{
 					User:   "alice@example.com",
 					Client: "claude-code",
 					Groups: []string{"engineering"},
@@ -227,7 +231,7 @@ func TestRuleMatches_SubjectSelectors(t *testing.T) {
 				},
 			},
 			req: Request{
-				Identity: Identity{
+				Identity: types.Identity{
 					User:   "alice@example.com",
 					Client: "claude-desktop",
 					Groups: []string{"engineering", "platform"},
@@ -264,7 +268,7 @@ func TestRuleMatches_ActionSelectors(t *testing.T) {
 				},
 			},
 			req: Request{
-				Identity: Identity{
+				Identity: types.Identity{
 					Client: "claude-code",
 				},
 				Action: ActionPromptsGet,
@@ -595,7 +599,7 @@ func TestRuleMatches_Composition(t *testing.T) {
 				},
 			},
 			req: Request{
-				Identity: Identity{
+				Identity: types.Identity{
 					User:   "alice@example.com",
 					Client: "claude-desktop",
 					Groups: []string{"engineering"},
@@ -621,7 +625,7 @@ func TestRuleMatches_Composition(t *testing.T) {
 				},
 			},
 			req: Request{
-				Identity: Identity{
+				Identity: types.Identity{
 					User: "alice@example.com",
 				},
 				Action: ActionResourcesRead,
@@ -645,7 +649,7 @@ func TestRuleMatches_Composition(t *testing.T) {
 				},
 			},
 			req: Request{
-				Identity: Identity{
+				Identity: types.Identity{
 					User: "bob@example.com",
 				},
 				Action: ActionToolsCall,
@@ -669,7 +673,7 @@ func TestRuleMatches_Composition(t *testing.T) {
 				},
 			},
 			req: Request{
-				Identity: Identity{
+				Identity: types.Identity{
 					Groups: []string{"finance"},
 				},
 				Action: ActionResourcesRead,

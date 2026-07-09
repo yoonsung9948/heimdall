@@ -13,6 +13,15 @@ Format: one entry per decision. Add to the top (newest first).
 
 ---
 
+## 2026-05-27 move identity to types
+Identity data type is used across boundaries. Prevent circular dependencies and provide clean abstraction.
+
+## 2026-05-xx transport — oversized body returns 400 not 413
+MaxBytesReader enforces the limit but SDK returns 400 on read failure.
+Rigorous 413 requires ResponseWriter wrapping which is complex.
+Deferred to v1.1.
+
+
 ## 2026-05-18 types — PromptArguments removed from v0.1
 
 **Decision:** Removed `PromptArguments` from `PromptDefinition`. Not included in v0.1.

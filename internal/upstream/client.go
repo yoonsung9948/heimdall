@@ -7,12 +7,11 @@ import (
 	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/yoonsung9948/heimdall/internal/types"
 )
 
 type UpstreamClient interface {
-	Tools(ctx context.Context) ([]types.ToolDefinition, error)
-	Call(ctx context.Context, params mcp.CallToolParams) (*mcp.CallToolResult, error)
+	Tools(ctx context.Context) ([]*mcp.Tool, error)
+	Call(ctx context.Context, params CallToolParams) (*CallToolResult, error)
 }
 
 var (
@@ -32,57 +31,21 @@ func NewSDKClient(session *mcp.ClientSession) (*sdkClient, error) {
 	}, nil
 }
 
-func (s sdkClient) Tools(ctx context.Context) ([]types.ToolDefinition, error) {
-	var tools []types.ToolDefinition
+func (s sdkClient) Tools(ctx context.Context) ([]*mcp.Tool, error) {
+	var tools []*mcp.Tool
 	var cursor string
 	for {
-		res, err := s.session.ListTools(ctx, &mcp.ListToolsParams{
-			Cursor: cursor,
-		})
+		res, err := s.session.ListTools(ctx, &mcp.ListToolsParams{Cursor: cursor})
 		if err != nil {
-			return nil, fmt.Errorf("calling list tools: %w", err)
+			return nil, fmt.Errorf("fetch tools for upstream %w", err)
 		}
-		for _, tool := range res.Tools {
-			inputSchema, err := json.Marshal(tool.InputSchema)
-			if err != nil {
-				return nil, fmt.Errorf("marshaling json: %w", err)
-			}
-			annotations := convertAnnotations(tool.Annotations)
-			tools = append(tools, types.ToolDefinition{
-				Name:        tool.Name,
-				Description: tool.Description,
-				InputSchema: inputSchema,
-				Annotations: annotations,
-			})
-		}
+		tools = append(tools, res.Tools...)
 		if res.NextCursor == "" {
 			break
 		}
 		cursor = res.NextCursor
 	}
 	return tools, nil
-}
-
-func convertAnnotations(ta *mcp.ToolAnnotations) *types.ToolAnnotations {
-	if ta == nil {
-		return nil
-	}
-	dh := derefBool(ta.DestructiveHint)
-	oh := derefBool(ta.OpenWorldHint)
-	res := &types.ToolAnnotations{
-		ReadOnlyHint:    ta.ReadOnlyHint,
-		DestructiveHint: dh,
-		IdempotentHint:  ta.IdempotentHint,
-		OpenWorldHint:   oh,
-	}
-	return res
-}
-
-func derefBool(b *bool) bool {
-	if b == nil {
-		return false
-	}
-	return *b
 }
 
 type CallToolParams struct {
@@ -94,7 +57,7 @@ type CallToolResult struct {
 	Content []json.RawMessage
 }
 
-func (s sdkClient) Call(ctx context.Context, params *CallToolParams) (*CallToolResult, error) {
+func (s sdkClient) Call(ctx context.Context, params CallToolParams) (*CallToolResult, error) {
 	p := &mcp.CallToolParams{
 		Name:      params.Name,
 		Arguments: params.Args,

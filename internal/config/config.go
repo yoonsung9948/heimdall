@@ -7,9 +7,10 @@ type Config struct {
 }
 
 type GatewayConfig struct {
-	Listen    string `yaml:"listen"`
-	PublicURL string `yaml:"public_url"`
-	Issuer    string `yaml:"issuer"`
+	Listen     string `yaml:"listen"`
+	PublicURL  string `yaml:"public_url"`
+	Issuer     string `yaml:"issuer"`
+	PolicyFile string `yaml:"policy_file"`
 }
 
 type IdentityConfig struct {
@@ -28,6 +29,7 @@ type ServerConfig struct {
 }
 
 type TransportConfig struct {
-	Type string `yaml:"type"` // v1: http
-	URL  string `yaml:"url"`
+	Type    string `yaml:"type"` // v1: http
+	URL     string `yaml:"url"`
+	Timeout string `yaml:"timeout"`
 }

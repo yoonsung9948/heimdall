@@ -1,0 +1,19 @@
+gateway:
+  listen: "127.0.0.1:9090"
+  policy_file: "examples/basic/policy.yaml"
+
+identity:
+  provider: static_api_keys
+  clients:
+    alice:
+      user: alice
+      groups:
+        - engineering
+      key: "my-secret-key-alice"
+
+servers:
+  everything:
+    transport:
+      type: http
+      url: "http://localhost:3001/mcp"
+      timeout: "30s"

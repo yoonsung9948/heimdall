@@ -29,6 +29,8 @@ var (
 type HTTPConfig struct {
 	Logger *slog.Logger
 
+	Middleware func(http.Handler) http.Handler
+
 	MaxBodyBytes      int64
 	SessionTimeout    time.Duration
 	ReadHeaderTimeout time.Duration
@@ -70,6 +72,9 @@ func (c HTTPConfig) withDefaults() (HTTPConfig, error) {
 	if c.ShutdownTimeout == 0 {
 		c.ShutdownTimeout = defaultShutdownTimeout
 	}
+	if c.Middleware == nil {
+		c.Middleware = func(next http.Handler) http.Handler { return next }
+	}
 	return c, nil
 }
 
@@ -86,7 +91,7 @@ func newStreamableHTTP(server *mcp.Server, cfg HTTPConfig) http.Handler {
 		},
 	)
 
-	mux.Handle("/mcp", recovery(maxBytes(streamHandler, cfg.MaxBodyBytes)))
+	mux.Handle("/mcp", recovery(maxBytes(cfg.Middleware(streamHandler), cfg.MaxBodyBytes)))
 
 	return mux
 }

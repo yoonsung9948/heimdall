@@ -1,0 +1,143 @@
+package app
+
+import (
+	"context"
+	"fmt"
+	"net"
+	"net/http"
+	"time"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/yoonsung9948/heimdall/internal/authn"
+	"github.com/yoonsung9948/heimdall/internal/broker"
+	"github.com/yoonsung9948/heimdall/internal/config"
+	"github.com/yoonsung9948/heimdall/internal/policy"
+	"github.com/yoonsung9948/heimdall/internal/transport"
+	"github.com/yoonsung9948/heimdall/internal/types"
+	"github.com/yoonsung9948/heimdall/internal/upstream"
+)
+
+const (
+	appName    = "heimdall"
+	appVersion = "0.1.0"
+)
+
+func Run(ctx context.Context, cfgPath string) error {
+	cfg, err := config.LoadFile(cfgPath)
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+	policyEngine, err := policy.LoadFile(cfg.Gateway.PolicyFile)
+	if err != nil {
+		return fmt.Errorf("load policy: %w", err)
+	}
+	registry := upstream.NewRegistry()
+	for s, c := range cfg.Servers {
+		t := c.Transport
+		timeout, err := time.ParseDuration(t.Timeout)
+		if err != nil {
+			return fmt.Errorf("parse timeout: %w", err)
+		}
+		mcpTransport := &mcp.StreamableClientTransport{
+			Endpoint: t.URL,
+			HTTPClient: &http.Client{
+				Timeout: timeout,
+			},
+		}
+		mcpClient := mcp.NewClient(
+			&mcp.Implementation{
+				Name:    appName,
+				Version: appVersion,
+			},
+			nil,
+		)
+		session, err := mcpClient.Connect(
+			ctx,
+			mcpTransport,
+			nil,
+		)
+		if err != nil {
+			return fmt.Errorf("client: %q: connect: %w", s, err)
+		}
+		client, err := upstream.NewSDKClient(session)
+		if err != nil {
+			return fmt.Errorf("construct client: %w", err)
+		}
+		err = registry.Register(ctx, s, client)
+		if err != nil {
+			return fmt.Errorf("register client: %w", err)
+		}
+	}
+	b, err := broker.NewBroker(policyEngine, registry)
+	if err != nil {
+		return fmt.Errorf("construct broker: %w", err)
+	}
+	server := mcp.NewServer(
+		&mcp.Implementation{
+			Name:    appName,
+			Version: appVersion,
+		},
+		nil,
+	)
+	tools, err := registry.AllTools(ctx)
+	if err != nil {
+		return fmt.Errorf("list all tools from registry: %w", err)
+	}
+	for _, t := range tools {
+		server.AddTool(t, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			identity, ok := types.IdentityFromContext(ctx)
+			if !ok {
+				return nil, broker.ErrMissingIdentity
+			}
+			params := upstream.CallToolParams{
+				Name: t.Name,
+				Args: req.Params.Arguments,
+			}
+			res, err := b.Route(ctx, *identity, t.Name, params)
+			if err != nil {
+				return nil, err
+			}
+			return &mcp.CallToolResult{
+				Content: func() []mcp.Content {
+					var contents []mcp.Content
+					for _, raw := range res.Content {
+						contents = append(contents, &mcp.TextContent{Text: string(raw)})
+					}
+					return contents
+				}(),
+			}, nil
+		})
+	}
+	rm, err := broker.NewReceivingMiddleware(b)
+	if err != nil {
+		return fmt.Errorf("construct receiving middleware: %w", err)
+	}
+	server.AddReceivingMiddleware(rm.Handle())
+	var credentials []authn.ClientCredentials
+
+	for name, cc := range cfg.Identity.Clients {
+		credentials = append(credentials, authn.ClientCredentials{
+			Name:   name,
+			APIKey: cc.Key,
+			Identity: &types.Identity{
+				User:   cc.User,
+				Groups: cc.Groups,
+			}})
+	}
+	authenticator, err := authn.NewAPIKeyAuthenticator(credentials)
+	if err != nil {
+		return fmt.Errorf("construct authenticator: %w", err)
+	}
+	middleware, err := authn.NewMiddleware(authenticator, nil)
+	if err != nil {
+		return fmt.Errorf("construct authenticator middleware: %w", err)
+	}
+	ln, err := net.Listen("tcp", cfg.Gateway.Listen)
+	if err != nil {
+		return fmt.Errorf("listen: %w", err)
+	}
+
+	return transport.ServeHTTP(ctx, ln, server, transport.HTTPConfig{
+		Middleware: middleware.RequireAuthentication,
+	})
+}

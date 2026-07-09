@@ -1,0 +1,27 @@
+rules:
+  - id: engineering-deny-echo
+    effect: deny
+    subjects:
+      users:
+        - alice
+    actions:
+      - "tools/call"
+    resources:
+      kinds:
+        - tool
+      names:
+        - "everything.echo"
+
+  - id: engineering-allow-tools
+    effect: allow
+    subjects:
+      users:
+        - alice
+    actions:
+      - "tools/list"
+      - "tools/call"
+    resources:
+      kinds:
+        - tool
+      names:
+        - "everything.*"

@@ -4,6 +4,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/yoonsung9948/heimdall/internal/types"
 )
 
 func TestNewEngine_ValidRules(t *testing.T) {
@@ -523,7 +525,7 @@ func TestAuthorize_DefaultDeny(t *testing.T) {
 	}
 
 	decision := engine.Authorize(Request{
-		Identity: Identity{
+		Identity: types.Identity{
 			User:   "alice@example.com",
 			Client: "claude-desktop",
 			Groups: []string{"engineering"},
@@ -560,7 +562,7 @@ func TestAuthorize_MatchingAllow(t *testing.T) {
 	}
 
 	decision := engine.Authorize(Request{
-		Identity: Identity{
+		Identity: types.Identity{
 			User:   "alice@example.com",
 			Client: "claude-desktop",
 			Groups: []string{"engineering"},
@@ -883,7 +885,7 @@ func TestAuthorize_UnconstrainedAllowMatchesAnyRequest(t *testing.T) {
 	}
 
 	decision := engine.Authorize(Request{
-		Identity: Identity{
+		Identity: types.Identity{
 			User:   "anyone@example.com",
 			Client: "any-client",
 			Groups: []string{"any-group"},
@@ -930,7 +932,7 @@ func TestNewEngine_DeepCopiesRules(t *testing.T) {
 	rules[0].Resources.Names[0] = "postgres.*"
 
 	decision := engine.Authorize(Request{
-		Identity: Identity{
+		Identity: types.Identity{
 			User:   "alice@example.com",
 			Client: "claude-desktop",
 			Groups: []string{"engineering"},
@@ -979,7 +981,7 @@ func TestAuthorize_ConcurrentReadSafe(t *testing.T) {
 	}
 
 	req := Request{
-		Identity: Identity{
+		Identity: types.Identity{
 			User:   "alice@example.com",
 			Client: "claude-desktop",
 			Groups: []string{"engineering"},

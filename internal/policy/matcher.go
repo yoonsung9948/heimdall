@@ -3,6 +3,8 @@ package policy
 import (
 	"slices"
 	"strings"
+
+	"github.com/yoonsung9948/heimdall/internal/types"
 )
 
 func (r Rule) Matches(request Request) bool {
@@ -24,7 +26,7 @@ func matchAction(actions []Action, action Action) bool {
 	return false
 }
 
-func matchSubject(ss SubjectSelector, identity Identity) bool {
+func matchSubject(ss SubjectSelector, identity types.Identity) bool {
 	userMatches := len(ss.Users) == 0 || slices.Contains(ss.Users, identity.User)
 	clientMatches := len(ss.Clients) == 0 || slices.Contains(ss.Clients, identity.Client)
 	groupMatches := len(ss.Groups) == 0

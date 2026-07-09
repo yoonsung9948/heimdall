@@ -54,3 +54,7 @@ Thumbs.db
 # Test coverage
 coverage.out
 coverage.html
+
+# Extra
+DECISIONS.md
+LEARNING.md

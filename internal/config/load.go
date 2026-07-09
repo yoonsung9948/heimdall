@@ -71,6 +71,9 @@ func validateFields(cfg Config) error {
 		default:
 			return fmt.Errorf("server %q: invalid transport type %q", srvName, srvConfig.Transport.Type)
 		}
+		if srvConfig.Transport.Timeout == "" {
+			return fmt.Errorf("server %q: empty transport timeout", srvName)
+		}
 	}
 	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// policy dry runs
 func newCheckCommand(configPath *string) *cobra.Command {
 	var identity string
 	var tool string
@@ -21,7 +22,7 @@ func newCheckCommand(configPath *string) *cobra.Command {
 			}
 			fmt.Fprintf(
 				cmd.OutOrStdout(),
-				"checking config=%s itdentity=%s tool=%s\n",
+				"checking config=%s identity=%s tool=%s\n",
 				*configPath,
 				identity,
 				tool,
