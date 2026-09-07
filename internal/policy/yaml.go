@@ -38,7 +38,9 @@ func LoadFile(path string) (*Engine, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open file: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 	e, err := Load(f)
 	if err != nil {
 		return nil, fmt.Errorf("load policy file %q: %w", path, err)

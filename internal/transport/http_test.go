@@ -128,7 +128,9 @@ func TestServeHTTP(t *testing.T) {
 			var ln net.Listener
 			if tt.listener != nil {
 				ln = tt.listener(t)
-				defer ln.Close()
+				defer func() {
+					_ = ln.Close()
+				}()
 			}
 
 			err := ServeHTTP(tt.ctx, ln, tt.server, tt.cfg)
@@ -161,7 +163,9 @@ func TestServeHTTP(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		ln := newTestListener(t)
-		defer ln.Close()
+		defer func() {
+			_ = ln.Close()
+		}()
 
 		errCh := make(chan error, 1)
 		go func() {

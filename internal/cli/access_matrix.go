@@ -84,7 +84,7 @@ output is a separate, later piece of work.`,
 // actually readable at the row counts you expect.
 func printMatrix(w io.Writer, cells []matrix.Cell) {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "IDENTITY\tSERVER\tTOOL\tDECISION")
+	_, _ = fmt.Fprintln(tw, "IDENTITY\tSERVER\tTOOL\tDECISION")
 	for _, c := range cells {
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", c.Identity.Client, c.ServerName, c.Tool.Name, allowLabel(c.Explanation.Decision.Allow))
 	}

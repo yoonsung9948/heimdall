@@ -15,7 +15,9 @@ func LoadFile(path string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open yaml file: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 	cfg, err := Load(f)
 	if err != nil {
 		return nil, fmt.Errorf("load yaml file: %w", err)

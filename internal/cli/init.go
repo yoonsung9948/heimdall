@@ -21,9 +21,9 @@ func newInitCommand() *cobra.Command {
 				configOut,
 				signKeyDir,
 			)
-			if force {
-				// overwrite existing config
-			}
+			// if force {
+			// 	// overwrite existing config
+			// }
 			return nil
 		},
 	}

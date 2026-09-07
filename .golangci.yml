@@ -1,0 +1,21 @@
+# We deliberately do NOT set linters.enable/disable/default here — this
+# file exists only to refine errcheck's own behavior. golangci-lint still
+# runs its default enabled linter set exactly as it would with no config
+# file at all.
+#
+# The exclusions below are a single, deliberate decision: writes to an
+# io.Writer inside CLI print-formatting helpers can fail (e.g. a broken
+# pipe when piped into `head` or similar), but that failure only means
+# some already-decided output didn't reach a consumer that stopped
+# listening — it's not a correctness or security concern for these
+# specific functions, so we don't require every call site to check it.
+# See DECISIONS.md for the full reasoning.
+version: "2"
+linters:
+  settings:
+    errcheck:
+      exclude-functions:
+        - fmt.Fprintln
+        - fmt.Fprintf
+        - fmt.Fprint
+        - (*text/tabwriter.Writer).Flush
