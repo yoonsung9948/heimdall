@@ -34,15 +34,22 @@ func NewAPIKeyAuthenticator(credentials []ClientCredentials) (APIKeyAuthenticato
 		return APIKeyAuthenticator{}, ErrNoCredentials
 	}
 	keyStore := make(map[string]*types.Identity, len(credentials))
-	for _, c := range credentials {
+	for i, c := range credentials {
 		if c.Name == "" {
-			return APIKeyAuthenticator{}, fmt.Errorf("invalid credential, no name: %w", ErrInvalidCredential)
+			return APIKeyAuthenticator{}, fmt.Errorf("%w at index %d: name is required", ErrInvalidCredential, i)
 		}
-		if c.APIKey == "" || c.Identity == nil {
-			return APIKeyAuthenticator{}, fmt.Errorf("invalid credential for client %q: %w", c.Name, ErrInvalidCredential)
+		if c.APIKey == "" {
+			return APIKeyAuthenticator{}, fmt.Errorf("%w for client %q: API key is required", ErrInvalidCredential, c.Name)
+		}
+		if c.Identity == nil {
+			return APIKeyAuthenticator{}, fmt.Errorf("%w for client %q: identity is required", ErrInvalidCredential, c.Name)
 		}
 		hash := sha256.Sum256([]byte(c.APIKey))
 		stringHash := hex.EncodeToString(hash[:])
+		_, ok := keyStore[stringHash]
+		if ok {
+			return APIKeyAuthenticator{}, fmt.Errorf("duplicate api key for client %q: %w", c.Name, ErrInvalidCredential)
+		}
 		keyStore[stringHash] = c.Identity
 	}
 	return APIKeyAuthenticator{

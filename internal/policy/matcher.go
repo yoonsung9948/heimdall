@@ -7,11 +7,57 @@ import (
 	"github.com/yoonsung9948/heimdall/internal/types"
 )
 
-func (r Rule) Matches(request Request) bool {
-	actionMatches := matchAction(r.Actions, request.Action)
-	subjectMatches := matchSubject(r.Subjects, request.Identity)
-	resourceMatches := matchResource(r.Resources, request.Resource)
-	return subjectMatches && actionMatches && resourceMatches
+func (r Rule) Matches(req Request) bool {
+	actionMatched := matchAction(r.Actions, req.Action)
+	subjectMatched := matchSubject(r.Subjects, req.Identity)
+	resourceMatched := matchResource(r.Resources, req.Resource)
+	return subjectMatched && actionMatched && resourceMatched
+}
+
+func matchUser(users []string, user string) bool {
+	return len(users) == 0 || slices.Contains(users, user)
+}
+
+func matchClient(clients []string, client string) bool {
+	return len(clients) == 0 || slices.Contains(clients, client)
+}
+
+func matchGroup(groups []string, identityGroups []string) bool {
+	if len(groups) == 0 {
+		return true
+	}
+	for _, group := range identityGroups {
+		if slices.Contains(groups, group) {
+			return true
+		}
+	}
+	return false
+}
+
+func matchSubject(ss SubjectSelector, identity types.Identity) bool {
+	return matchUser(ss.Users, identity.User) &&
+		matchClient(ss.Clients, identity.Client) &&
+		matchGroup(ss.Groups, identity.Groups)
+}
+
+func matchKind(kinds []ResourceKind, kind ResourceKind) bool {
+	return len(kinds) == 0 || slices.Contains(kinds, kind)
+}
+
+func matchName(names []string, name string) bool {
+	if len(names) == 0 {
+		return true
+	}
+	for _, pattern := range names {
+		if matchPattern(pattern, name) {
+			return true
+		}
+	}
+	return false
+}
+
+func matchResource(rs ResourceSelector, resource Resource) bool {
+	return matchKind(rs.Kinds, resource.Kind) && matchName(rs.Names, resource.Name)
 }
 
 func matchAction(actions []Action, action Action) bool {
@@ -26,37 +72,6 @@ func matchAction(actions []Action, action Action) bool {
 	return false
 }
 
-func matchSubject(ss SubjectSelector, identity types.Identity) bool {
-	userMatches := len(ss.Users) == 0 || slices.Contains(ss.Users, identity.User)
-	clientMatches := len(ss.Clients) == 0 || slices.Contains(ss.Clients, identity.Client)
-	groupMatches := len(ss.Groups) == 0
-
-	if len(ss.Groups) > 0 {
-		for _, group := range identity.Groups {
-			if slices.Contains(ss.Groups, group) {
-				groupMatches = true
-				break
-			}
-		}
-	}
-
-	return userMatches && clientMatches && groupMatches
-}
-
-func matchResource(rs ResourceSelector, resource Resource) bool {
-	kindMatches := len(rs.Kinds) == 0 || slices.Contains(rs.Kinds, resource.Kind)
-	nameMatches := len(rs.Names) == 0
-	if len(rs.Names) > 0 {
-		for _, pattern := range rs.Names {
-			if matchPattern(pattern, resource.Name) {
-				nameMatches = true
-				break
-			}
-		}
-	}
-	return kindMatches && nameMatches
-}
-
 func matchPattern(pattern, value string) bool {
 	switch {
 	case pattern == "*":
@@ -69,17 +84,45 @@ func matchPattern(pattern, value string) bool {
 	}
 }
 
-// TODO: matcher should return matchResult for granular match tracing
-// engine should be able to produce detailed reasons about the decision
+func (r Rule) evaluateDetailed(req Request) MatchResult {
+	userMatched := matchUser(r.Subjects.Users, req.Identity.User)
+	clientMatched := matchClient(r.Subjects.Clients, req.Identity.Client)
+	groupMatched := matchGroup(r.Subjects.Groups, req.Identity.Groups)
+	actionMatched := matchAction(r.Actions, req.Action)
+	rsKindMatched := matchKind(r.Resources.Kinds, req.Resource.Kind)
+	rsNameMatched := matchName(r.Resources.Names, req.Resource.Name)
+	matched := r.Matches(req)
+	return MatchResult{
+		Matched: matched,
+		RuleID:  r.ID,
+		Subjects: SubjectMatch{
+			UserMatched:   userMatched,
+			ClientMatched: clientMatched,
+			GroupMatched:  groupMatched,
+		},
+		Action: actionMatched,
+		Resource: ResourceMatch{
+			KindMatched: rsKindMatched,
+			NameMatched: rsNameMatched,
+		},
+	}
+}
+
 type MatchResult struct {
 	Matched  bool
 	RuleID   string
-	Subjects FieldMatch
-	Action   FieldMatch
-	Resource FieldMatch
+	Subjects SubjectMatch
+	Action   bool
+	Resource ResourceMatch
 }
 
-type FieldMatch struct {
-	Matched bool
-	Reason  string
+type SubjectMatch struct {
+	UserMatched   bool
+	ClientMatched bool
+	GroupMatched  bool
+}
+
+type ResourceMatch struct {
+	KindMatched bool
+	NameMatched bool
 }

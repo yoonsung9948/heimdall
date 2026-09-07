@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -22,6 +23,10 @@ const (
 	appVersion = "0.1.0"
 )
 
+var (
+	ErrUnknownClient = errors.New("unknown client")
+)
+
 func Run(ctx context.Context, cfgPath string) error {
 	cfg, err := config.LoadFile(cfgPath)
 	if err != nil {
@@ -31,43 +36,11 @@ func Run(ctx context.Context, cfgPath string) error {
 	if err != nil {
 		return fmt.Errorf("load policy: %w", err)
 	}
-	registry := upstream.NewRegistry()
-	for s, c := range cfg.Servers {
-		t := c.Transport
-		timeout, err := time.ParseDuration(t.Timeout)
-		if err != nil {
-			return fmt.Errorf("parse timeout: %w", err)
-		}
-		mcpTransport := &mcp.StreamableClientTransport{
-			Endpoint: t.URL,
-			HTTPClient: &http.Client{
-				Timeout: timeout,
-			},
-		}
-		mcpClient := mcp.NewClient(
-			&mcp.Implementation{
-				Name:    appName,
-				Version: appVersion,
-			},
-			nil,
-		)
-		session, err := mcpClient.Connect(
-			ctx,
-			mcpTransport,
-			nil,
-		)
-		if err != nil {
-			return fmt.Errorf("client: %q: connect: %w", s, err)
-		}
-		client, err := upstream.NewSDKClient(session)
-		if err != nil {
-			return fmt.Errorf("construct client: %w", err)
-		}
-		err = registry.Register(ctx, s, client)
-		if err != nil {
-			return fmt.Errorf("register client: %w", err)
-		}
+	registry, err := BuildRegistry(ctx, cfg)
+	if err != nil {
+		return fmt.Errorf("build registry: %w", err)
 	}
+
 	b, err := broker.NewBroker(policyEngine, registry)
 	if err != nil {
 		return fmt.Errorf("construct broker: %w", err)
@@ -108,13 +81,12 @@ func Run(ctx context.Context, cfgPath string) error {
 	var credentials []authn.ClientCredentials
 
 	for name, cc := range cfg.Identity.Clients {
+		id := types.IdentityFromClient(name, cc)
 		credentials = append(credentials, authn.ClientCredentials{
-			Name:   name,
-			APIKey: cc.Key,
-			Identity: &types.Identity{
-				User:   cc.User,
-				Groups: cc.Groups,
-			}})
+			Name:     name,
+			APIKey:   cc.Key,
+			Identity: &id,
+		})
 	}
 	authenticator, err := authn.NewAPIKeyAuthenticator(credentials)
 	if err != nil {
@@ -132,4 +104,53 @@ func Run(ctx context.Context, cfgPath string) error {
 	return transport.ServeHTTP(ctx, ln, server, transport.HTTPConfig{
 		Middleware: middleware.RequireAuthentication,
 	})
+}
+
+func BuildRegistry(ctx context.Context, cfg *config.Config) (*upstream.Registry, error) {
+	registry := upstream.NewRegistry()
+	for s, c := range cfg.Servers {
+		t := c.Transport
+		timeout, err := time.ParseDuration(t.Timeout)
+		if err != nil {
+			return nil, fmt.Errorf("parse timeout: %w", err)
+		}
+		mcpTransport := &mcp.StreamableClientTransport{
+			Endpoint: t.URL,
+			HTTPClient: &http.Client{
+				Timeout: timeout,
+			},
+		}
+		mcpClient := mcp.NewClient(
+			&mcp.Implementation{
+				Name:    appName,
+				Version: appVersion,
+			},
+			nil,
+		)
+		session, err := mcpClient.Connect(
+			ctx,
+			mcpTransport,
+			nil,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("client: %q: connect: %w", s, err)
+		}
+		client, err := upstream.NewSDKClient(session)
+		if err != nil {
+			return nil, fmt.Errorf("construct client: %w", err)
+		}
+		err = registry.Register(ctx, s, client)
+		if err != nil {
+			return nil, fmt.Errorf("register client: %w", err)
+		}
+	}
+	return registry, nil
+}
+
+func LookupIdentity(name string, cfg *config.Config) (types.Identity, error) {
+	cc, ok := cfg.Identity.Clients[name]
+	if !ok {
+		return types.Identity{}, fmt.Errorf("%q: %w", name, ErrUnknownClient)
+	}
+	return types.IdentityFromClient(name, cc), nil
 }

@@ -1,6 +1,10 @@
 package types
 
-import "context"
+import (
+	"context"
+
+	"github.com/yoonsung9948/heimdall/internal/config"
+)
 
 type Identity struct {
 	User   string
@@ -22,4 +26,12 @@ func WithIdentity(ctx context.Context, identity *Identity) context.Context {
 func IdentityFromContext(ctx context.Context) (*Identity, bool) {
 	identity, ok := ctx.Value(identityKey).(*Identity)
 	return identity, ok
+}
+
+func IdentityFromClient(name string, cc config.ClientConfig) Identity {
+	return Identity{
+		User:   cc.User,
+		Client: name,
+		Groups: cc.Groups,
+	}
 }

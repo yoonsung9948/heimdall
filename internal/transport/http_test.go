@@ -1,4 +1,4 @@
-package transport_test
+package transport
 
 import (
 	"context"
@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/yoonsung9948/heimdall/internal/transport"
 )
 
 func TestServeHTTP(t *testing.T) {
@@ -24,7 +23,7 @@ func TestServeHTTP(t *testing.T) {
 		ctx             context.Context
 		listener        func(t *testing.T) net.Listener
 		server          *mcp.Server
-		cfg             transport.HTTPConfig
+		cfg             HTTPConfig
 		wantErr         error
 		wantErrContains string
 	}{
@@ -33,31 +32,31 @@ func TestServeHTTP(t *testing.T) {
 			ctx:      nil,
 			listener: newTestListener,
 			server:   validServer,
-			cfg:      transport.HTTPConfig{},
-			wantErr:  transport.ErrNilContext,
+			cfg:      HTTPConfig{},
+			wantErr:  ErrNilContext,
 		},
 		{
 			name:     "nil listener returns error",
 			ctx:      validCtx,
 			listener: nil,
 			server:   validServer,
-			cfg:      transport.HTTPConfig{},
-			wantErr:  transport.ErrNilListener,
+			cfg:      HTTPConfig{},
+			wantErr:  ErrNilListener,
 		},
 		{
 			name:     "nil MCP server returns error",
 			ctx:      validCtx,
 			listener: newTestListener,
 			server:   nil,
-			cfg:      transport.HTTPConfig{},
-			wantErr:  transport.ErrNilMCPServer,
+			cfg:      HTTPConfig{},
+			wantErr:  ErrNilMCPServer,
 		},
 		{
 			name:     "negative max body bytes returns error",
 			ctx:      validCtx,
 			listener: newTestListener,
 			server:   validServer,
-			cfg: transport.HTTPConfig{
+			cfg: HTTPConfig{
 				MaxBodyBytes:      -1,
 				SessionTimeout:    time.Second,
 				ReadHeaderTimeout: time.Second,
@@ -71,7 +70,7 @@ func TestServeHTTP(t *testing.T) {
 			ctx:      validCtx,
 			listener: newTestListener,
 			server:   validServer,
-			cfg: transport.HTTPConfig{
+			cfg: HTTPConfig{
 				MaxBodyBytes:      1,
 				SessionTimeout:    -time.Second,
 				ReadHeaderTimeout: time.Second,
@@ -85,7 +84,7 @@ func TestServeHTTP(t *testing.T) {
 			ctx:      validCtx,
 			listener: newTestListener,
 			server:   validServer,
-			cfg: transport.HTTPConfig{
+			cfg: HTTPConfig{
 				MaxBodyBytes:      1,
 				SessionTimeout:    time.Second,
 				ReadHeaderTimeout: -time.Second,
@@ -99,7 +98,7 @@ func TestServeHTTP(t *testing.T) {
 			ctx:      validCtx,
 			listener: newTestListener,
 			server:   validServer,
-			cfg: transport.HTTPConfig{
+			cfg: HTTPConfig{
 				MaxBodyBytes:      1,
 				SessionTimeout:    time.Second,
 				ReadHeaderTimeout: time.Second,
@@ -113,7 +112,7 @@ func TestServeHTTP(t *testing.T) {
 			ctx:      validCtx,
 			listener: newTestListener,
 			server:   validServer,
-			cfg: transport.HTTPConfig{
+			cfg: HTTPConfig{
 				MaxBodyBytes:      1,
 				SessionTimeout:    time.Second,
 				ReadHeaderTimeout: time.Second,
@@ -132,7 +131,7 @@ func TestServeHTTP(t *testing.T) {
 				defer ln.Close()
 			}
 
-			err := transport.ServeHTTP(tt.ctx, ln, tt.server, tt.cfg)
+			err := ServeHTTP(tt.ctx, ln, tt.server, tt.cfg)
 
 			if tt.wantErr != nil {
 				if !errors.Is(err, tt.wantErr) {
@@ -166,7 +165,7 @@ func TestServeHTTP(t *testing.T) {
 
 		errCh := make(chan error, 1)
 		go func() {
-			errCh <- transport.ServeHTTP(ctx, ln, newTestMCPServer(), transport.HTTPConfig{})
+			errCh <- ServeHTTP(ctx, ln, newTestMCPServer(), HTTPConfig{})
 		}()
 
 		cancel()
@@ -231,10 +230,14 @@ func TestNewStreamableHTTP(t *testing.T) {
 			req.Header.Set("Accept", "application/json, text/event-stream")
 
 			w := httptest.NewRecorder()
-			handler := transport.NewStreamableHTTPForTest(validServer, transport.HTTPConfig{
+			c, err := HTTPConfig{
 				MaxBodyBytes:    defaultMaxBodyBytes,
 				ShutdownTimeout: time.Second,
-			})
+			}.withDefaults()
+			if err != nil {
+				t.Fatalf("error applying defaults: %v", err)
+			}
+			handler := newStreamableHTTP(validServer, c)
 
 			handler.ServeHTTP(w, req)
 

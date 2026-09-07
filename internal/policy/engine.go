@@ -72,6 +72,12 @@ type Rule struct {
 	Resources ResourceSelector
 }
 
+type Explanation struct {
+	Decision Decision
+	Detail   *MatchResult
+	Rule     *Rule
+}
+
 type Engine struct {
 	rules []Rule
 }
@@ -85,7 +91,7 @@ func NewEngine(rules []Rule) (*Engine, error) {
 	}, nil
 }
 
-func (e *Engine) Authorize(req Request) Decision {
+func (e *Engine) evaluate(req Request) (Decision, *Rule) {
 	var allow *Rule
 
 	for i := range e.rules {
@@ -101,7 +107,7 @@ func (e *Engine) Authorize(req Request) Decision {
 				Allow:  false,
 				RuleID: rule.ID,
 				Reason: reasonForRule(*rule, "denied by matching rule"),
-			}
+			}, rule
 
 		case EffectAllow:
 			if allow == nil {
@@ -115,14 +121,28 @@ func (e *Engine) Authorize(req Request) Decision {
 			Allow:  true,
 			RuleID: allow.ID,
 			Reason: reasonForRule(*allow, "allowed by matching rule"),
-		}
+		}, allow
 	}
 
 	return Decision{
 		Allow:  false,
 		RuleID: "",
 		Reason: "denied by default: no matching allow rule",
+	}, nil
+}
+
+func (e *Engine) Authorize(req Request) Decision {
+	decision, _ := e.evaluate(req)
+	return decision
+}
+
+func (e *Engine) Explain(req Request) Explanation {
+	decision, rule := e.evaluate(req)
+	if rule == nil {
+		return Explanation{Decision: decision}
 	}
+	detail := rule.evaluateDetailed(req)
+	return Explanation{Decision: decision, Rule: rule, Detail: &detail}
 }
 
 func validateRules(rules []Rule) error {

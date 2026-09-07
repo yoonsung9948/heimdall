@@ -7,9 +7,10 @@ func applyDefaults(cfg *Config) {
 	if cfg.Gateway.PolicyFile == "" {
 		cfg.Gateway.PolicyFile = "policy.yaml"
 	}
-	for _, c := range cfg.Servers {
+	for s, c := range cfg.Servers {
 		if c.Transport.Timeout == "" {
 			c.Transport.Timeout = "30s"
+			cfg.Servers[s] = c
 		}
 	}
 }

@@ -90,6 +90,11 @@ func newStreamableHTTP(server *mcp.Server, cfg HTTPConfig) http.Handler {
 			SessionTimeout: cfg.SessionTimeout,
 		},
 	)
+	if cfg.Middleware == nil {
+		cfg.Middleware = func(next http.Handler) http.Handler {
+			return next
+		}
+	}
 
 	mux.Handle("/mcp", recovery(maxBytes(cfg.Middleware(streamHandler), cfg.MaxBodyBytes)))
 
@@ -177,5 +182,3 @@ func recovery(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
-var NewStreamableHTTPForTest = newStreamableHTTP

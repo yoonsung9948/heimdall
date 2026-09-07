@@ -2,36 +2,93 @@ package cli
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/yoonsung9948/heimdall/internal/policy"
+	"github.com/yoonsung9948/heimdall/internal/types"
 )
 
-// policy dry runs
-func newCheckCommand(configPath *string) *cobra.Command {
-	var identity string
-	var tool string
+func newPolicyCheckCommand() *cobra.Command {
+	var policyPath string
+	var user string
+	var client string
+	var groups []string
+	var action string
+	var resourceKind string
+	var resourceName string
+
 	cmd := &cobra.Command{
 		Use:   "check",
-		Short: "Check whether an identity can call a tool",
+		Short: "Inspect and dry-run authorization policy",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if identity == "" {
-				return fmt.Errorf("--identity is required")
+			action = strings.ToLower(strings.TrimSpace(action))
+			resourceKind = strings.ToLower(strings.TrimSpace(resourceKind))
+			resourceName = strings.TrimSpace(resourceName)
+			user = strings.TrimSpace(user)
+			client = strings.TrimSpace(client)
+
+			normalizedGroups, err := normalizeGroups(groups)
+			e, err := policy.LoadFile(policyPath)
+			if err != nil {
+				return err
 			}
-			if tool == "" {
-				return fmt.Errorf("--tool is required")
+			r := policy.Request{
+				Identity: types.Identity{
+					User:   user,
+					Client: client,
+					Groups: normalizedGroups,
+				},
+				Action: policy.Action(action),
+				Resource: policy.Resource{
+					Kind: policy.ResourceKind(resourceKind),
+					Name: resourceName,
+				},
 			}
-			fmt.Fprintf(
-				cmd.OutOrStdout(),
-				"checking config=%s identity=%s tool=%s\n",
-				*configPath,
-				identity,
-				tool,
-			)
+			decision := e.Authorize(r)
+			var status string
+			if decision.Allow {
+				status = "ALLOW"
+			} else {
+				status = "DENY"
+			}
+			out := cmd.OutOrStdout()
+			fmt.Fprintf(out, "%s rule=%q reason=%q\n", status, decision.RuleID, decision.Reason)
 			return nil
 		},
 	}
-	addConfigFlag(cmd, configPath)
-	cmd.Flags().StringVar(&identity, "identity", "", "identity to check")
-	cmd.Flags().StringVar(&tool, "tool", "", "tool name to check")
+
+	cmd.Flags().StringVar(&policyPath, "policy", "policy.yaml", "policy config file path")
+	cmd.Flags().StringVar(&user, "user", "", "user")
+	cmd.Flags().StringVar(&client, "client", "", "client")
+	cmd.Flags().StringArrayVar(&groups, "group", []string{}, "groups")
+	cmd.Flags().StringVar(&action, "action", "", "action")
+	cmd.Flags().StringVar(&resourceKind, "resource-kind", "", "kind of resource")
+	cmd.Flags().StringVar(&resourceName, "resource-name", "", "name of resource")
+
+	mustMarkRequired(cmd, "action")
+	mustMarkRequired(cmd, "resource-kind")
+	mustMarkRequired(cmd, "resource-name")
+
 	return cmd
+}
+
+func normalizeGroups(groups []string) ([]string, error) {
+	out := make([]string, 0, len(groups))
+
+	for _, group := range groups {
+		group = strings.TrimSpace(group)
+		if group == "" {
+			return nil, fmt.Errorf("--group contains empty value")
+		}
+		out = append(out, group)
+	}
+
+	return out, nil
+}
+
+func mustMarkRequired(cmd *cobra.Command, name string) {
+	if err := cmd.MarkFlagRequired(name); err != nil {
+		panic(err)
+	}
 }
