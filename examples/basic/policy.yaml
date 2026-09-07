@@ -1,18 +1,5 @@
 rules:
-  - id: engineering-deny-echo
-    effect: deny
-    subjects:
-      users:
-        - alice
-    actions:
-      - "tools/call"
-    resources:
-      kinds:
-        - tool
-      names:
-        - "everything.echo"
-
-  - id: engineering-allow-tools
+  - id: engineering-allow-all-tools
     effect: allow
     subjects:
       users:
@@ -25,3 +12,17 @@ rules:
         - tool
       names:
         - "everything.*"
+
+  - id: support-allow-list-files-only
+    effect: allow
+    subjects:
+      users:
+        - bob
+    actions:
+      - "tools/list"
+      - "tools/call"
+    resources:
+      kinds:
+        - tool
+      names:
+        - "everything.list_files"

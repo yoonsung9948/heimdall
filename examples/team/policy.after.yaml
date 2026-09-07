@@ -1,0 +1,157 @@
+rules:
+  # --- engineering baseline: every engineer (regular or senior) gets this ---
+  - id: engineering-github-readwrite
+    effect: allow
+    subjects: { groups: [engineering] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [github.list_repos, github.list_issues, github.create_issue, github.create_pr, github.delete_repo]
+
+  - id: engineering-jira-readwrite
+    effect: allow
+    subjects: { groups: [engineering] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [jira.list_tickets, jira.create_ticket, jira.update_ticket]
+
+  - id: engineering-slack-basic
+    effect: allow
+    subjects: { groups: [engineering] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [slack.list_channels, slack.post_message]
+
+  - id: engineering-aws-readonly
+    effect: allow
+    subjects: { groups: [engineering] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [aws.describe_instances]
+
+  - id: engineering-postgres-readonly
+    effect: allow
+    subjects: { groups: [engineering] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [postgres.query]
+
+  # --- senior: engineering baseline plus destructive/escalated ops ---
+  - id: senior-github-escalated
+    effect: allow
+    subjects: { groups: [senior] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [github.merge_pr, github.delete_repo]
+
+  - id: senior-jira-escalated
+    effect: allow
+    subjects: { groups: [senior] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [jira.delete_ticket]
+
+  - id: senior-aws-escalated
+    effect: allow
+    subjects: { groups: [senior] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [aws.start_instance, aws.stop_instance, aws.deploy_stack, aws.terminate_instance]
+
+  - id: senior-postgres-escalated
+    effect: allow
+    subjects: { groups: [senior] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [postgres.migrate, postgres.drop_table]
+
+  # --- sre: full infra access, read-only on github, no schema-destructive ops ---
+  - id: sre-github-readonly
+    effect: allow
+    subjects: { groups: [sre] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [github.list_repos, github.list_issues]
+
+  - id: sre-slack-basic
+    effect: allow
+    subjects: { groups: [sre] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [slack.list_channels, slack.post_message]
+
+  - id: sre-aws-full
+    effect: allow
+    subjects: { groups: [sre] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [aws.describe_instances, aws.start_instance, aws.stop_instance, aws.deploy_stack, aws.terminate_instance]
+
+  - id: sre-postgres-operate
+    effect: allow
+    subjects: { groups: [sre] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [postgres.query, postgres.migrate]
+
+  # --- support: jira + slack only, no delete, no infra/db access at all ---
+  - id: support-jira-readwrite
+    effect: allow
+    subjects: { groups: [support] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [jira.list_tickets, jira.create_ticket]
+
+  - id: support-slack-basic
+    effect: allow
+    subjects: { groups: [support] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [slack.list_channels, slack.post_message]
+
+  # --- ci: scoped machine identity, deploy-capable, never destructive ---
+  - id: ci-github-scoped
+    effect: allow
+    subjects: { groups: [ci] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [github.list_repos, github.create_pr]
+
+  - id: ci-aws-deploy
+    effect: allow
+    subjects: { groups: [ci] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [aws.start_instance, aws.stop_instance, aws.deploy_stack]
+
+  - id: ci-postgres-migrate
+    effect: allow
+    subjects: { groups: [ci] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [postgres.migrate]
+
+  - id: ci-slack-notify
+    effect: allow
+    subjects: { groups: [ci] }
+    actions: ["tools/list", "tools/call"]
+    resources:
+      kinds: [tool]
+      names: [slack.post_message]

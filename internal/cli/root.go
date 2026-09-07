@@ -10,11 +10,13 @@ func NewRootCommand() *cobra.Command {
 	}
 
 	rootCmd.AddCommand(newServeCommand(&configPath))
-	rootCmd.AddCommand(newCheckCommand(&configPath))
 	rootCmd.AddCommand(newToolsCommand(&configPath))
 	rootCmd.AddCommand(newValidateCommand(&configPath))
 	rootCmd.AddCommand(newInitCommand())
-	rootCmd.AddCommand(newPolicyCommand())
+	rootCmd.AddCommand(newCheckCommand())
+	rootCmd.AddCommand(newAccessMatrixCommand())
+	rootCmd.AddCommand(newDiffAccessCommand())
+	rootCmd.AddCommand(newVerifyCommand())
 	return rootCmd
 }
 

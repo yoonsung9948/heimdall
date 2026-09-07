@@ -1,0 +1,30 @@
+{
+  "CapturedAt": "2026-09-06T00:00:00Z",
+  "Tools": [
+    {"ToolName": "github.list_repos", "ServerName": "github"},
+    {"ToolName": "github.list_issues", "ServerName": "github"},
+    {"ToolName": "github.create_issue", "ServerName": "github"},
+    {"ToolName": "github.create_pr", "ServerName": "github"},
+    {"ToolName": "github.merge_pr", "ServerName": "github"},
+    {"ToolName": "github.delete_repo", "ServerName": "github"},
+
+    {"ToolName": "jira.list_tickets", "ServerName": "jira"},
+    {"ToolName": "jira.create_ticket", "ServerName": "jira"},
+    {"ToolName": "jira.update_ticket", "ServerName": "jira"},
+    {"ToolName": "jira.delete_ticket", "ServerName": "jira"},
+
+    {"ToolName": "aws.describe_instances", "ServerName": "aws"},
+    {"ToolName": "aws.start_instance", "ServerName": "aws"},
+    {"ToolName": "aws.stop_instance", "ServerName": "aws"},
+    {"ToolName": "aws.deploy_stack", "ServerName": "aws"},
+    {"ToolName": "aws.terminate_instance", "ServerName": "aws"},
+
+    {"ToolName": "slack.list_channels", "ServerName": "slack"},
+    {"ToolName": "slack.post_message", "ServerName": "slack"},
+    {"ToolName": "slack.delete_message", "ServerName": "slack"},
+
+    {"ToolName": "postgres.query", "ServerName": "postgres"},
+    {"ToolName": "postgres.migrate", "ServerName": "postgres"},
+    {"ToolName": "postgres.drop_table", "ServerName": "postgres"}
+  ]
+}

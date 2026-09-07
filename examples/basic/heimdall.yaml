@@ -5,11 +5,16 @@ gateway:
 identity:
   provider: static_api_keys
   clients:
-    alice:
+    claude-code:
       user: alice
       groups:
         - engineering
       key: "my-secret-key-alice"
+    cursor:
+      user: bob
+      groups:
+        - support
+      key: "my-secret-key-bob"
 
 servers:
   everything:

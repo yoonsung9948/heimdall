@@ -1,0 +1,58 @@
+gateway:
+  listen: "127.0.0.1:9090"
+  policy_file: "examples/team/policy.yaml"
+
+identity:
+  provider: static_api_keys
+  clients:
+    alice-laptop:
+      user: alice
+      groups: [engineering, senior]
+      key: "dev-key-alice"
+    bob-laptop:
+      user: bob
+      groups: [engineering]
+      key: "dev-key-bob"
+    carol-laptop:
+      user: carol
+      groups: [engineering, senior]
+      key: "dev-key-carol"
+    dave-laptop:
+      user: dave
+      groups: [sre]
+      key: "dev-key-dave"
+    erin-laptop:
+      user: erin
+      groups: [support]
+      key: "dev-key-erin"
+    ci-bot:
+      user: ci
+      groups: [ci]
+      key: "dev-key-ci-bot"
+
+servers:
+  github:
+    transport:
+      type: http
+      url: "http://localhost:3001/mcp"
+      timeout: "30s"
+  jira:
+    transport:
+      type: http
+      url: "http://localhost:3002/mcp"
+      timeout: "30s"
+  aws:
+    transport:
+      type: http
+      url: "http://localhost:3003/mcp"
+      timeout: "30s"
+  slack:
+    transport:
+      type: http
+      url: "http://localhost:3004/mcp"
+      timeout: "30s"
+  postgres:
+    transport:
+      type: http
+      url: "http://localhost:3005/mcp"
+      timeout: "30s"
