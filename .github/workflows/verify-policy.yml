@@ -1,0 +1,54 @@
+# Example CI gate using `heimdall verify`.
+#
+# This is the template a team adopting Heimdall would copy into their own
+# repository: it compares the policy file on the PR's base branch (the
+# last reviewed/merged version) against the PR's candidate version, and
+# fails the check if the candidate grants any access the baseline denied.
+#
+# Adjust `POLICY_FILE`, `CONFIG_FILE`, and `SNAPSHOT_FILE` to your own
+# paths. This example targets Heimdall's own example fixtures
+# (examples/team/*) so it's a real, runnable demonstration rather than a
+# fill-in-the-blanks stub.
+name: Verify policy
+
+on:
+  pull_request:
+    paths:
+      - "examples/team/policy.yaml"
+
+env:
+  POLICY_FILE: examples/team/policy.yaml
+  CONFIG_FILE: examples/team/heimdall.yaml
+  SNAPSHOT_FILE: examples/team/tools.snapshot.json
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR (candidate policy)
+        uses: actions/checkout@v4
+        with:
+          path: after
+
+      - name: Checkout base branch (baseline policy)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: before
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: after/go.mod
+
+      - name: Build heimdall
+        working-directory: after
+        run: go build -o ../heimdall .
+
+      - name: Run heimdall verify
+        run: |
+          ./heimdall verify \
+            --config "after/${CONFIG_FILE}" \
+            --snapshot "after/${SNAPSHOT_FILE}" \
+            --before "before/${POLICY_FILE}" \
+            --after "after/${POLICY_FILE}"
