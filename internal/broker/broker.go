@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/yoonsung9948/heimdall/internal/audit"
 	"github.com/yoonsung9948/heimdall/internal/policy"
 	"github.com/yoonsung9948/heimdall/internal/types"
 	"github.com/yoonsung9948/heimdall/internal/upstream"
@@ -20,6 +22,7 @@ type Broker interface {
 type broker struct {
 	policyEngine *policy.Engine
 	registry     *upstream.Registry
+	logger       audit.AuditLogger
 }
 
 var (
@@ -28,7 +31,7 @@ var (
 	ErrUnauthorized        = errors.New("unauthorized")
 )
 
-func NewBroker(pe *policy.Engine, rg *upstream.Registry) (*broker, error) {
+func NewBroker(pe *policy.Engine, rg *upstream.Registry, l audit.AuditLogger) (*broker, error) {
 	if pe == nil {
 		return &broker{}, ErrMissingPolicyEngine
 	}
@@ -38,6 +41,7 @@ func NewBroker(pe *policy.Engine, rg *upstream.Registry) (*broker, error) {
 	return &broker{
 		policyEngine: pe,
 		registry:     rg,
+		logger:       l,
 	}, nil
 }
 
@@ -79,13 +83,20 @@ func (b *broker) Route(
 		},
 	}
 	decision := b.policyEngine.Authorize(req)
+
+	client, clientName, err := b.registry.ClientForTool(ctx, toolName)
+
+	auditEvent := audit.NewAuditEvent(req, clientName, decision, time.Now())
+	b.logger.Log(auditEvent)
+
 	if !decision.Allow {
 		return nil, ErrUnauthorized
 	}
-	client, clientName, err := b.registry.ClientForTool(ctx, toolName)
+
 	if err != nil {
 		return nil, fmt.Errorf("getting client: %w", err)
 	}
+
 	originalName := strings.TrimPrefix(toolName, clientName+".")
 	params.Name = originalName
 	res, err := client.Call(ctx, params)

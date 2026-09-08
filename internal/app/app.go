@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/yoonsung9948/heimdall/internal/audit"
 	"github.com/yoonsung9948/heimdall/internal/authn"
 	"github.com/yoonsung9948/heimdall/internal/broker"
 	"github.com/yoonsung9948/heimdall/internal/config"
@@ -21,13 +23,14 @@ import (
 const (
 	appName    = "heimdall"
 	appVersion = "0.1.0"
+	bufferSize = 1024 // provisional; not derived from measured load
 )
 
 var (
 	ErrUnknownClient = errors.New("unknown client")
 )
 
-func Run(ctx context.Context, cfgPath string) error {
+func Run(ctx context.Context, cfgPath string) (err error) {
 	cfg, err := config.LoadFile(cfgPath)
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
@@ -41,7 +44,21 @@ func Run(ctx context.Context, cfgPath string) error {
 		return fmt.Errorf("build registry: %w", err)
 	}
 
-	b, err := broker.NewBroker(policyEngine, registry)
+	out, err := os.OpenFile(cfg.Gateway.AuditLogPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		return fmt.Errorf("opening file: %w", err)
+	}
+
+	defer func() {
+		if cerr := out.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("closing file: %w", cerr)
+		}
+	}()
+
+	logger := audit.NewLogger(out, bufferSize)
+	defer logger.Close()
+
+	b, err := broker.NewBroker(policyEngine, registry, logger)
 	if err != nil {
 		return fmt.Errorf("construct broker: %w", err)
 	}

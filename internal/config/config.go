@@ -7,10 +7,11 @@ type Config struct {
 }
 
 type GatewayConfig struct {
-	Listen     string `yaml:"listen"`
-	PublicURL  string `yaml:"public_url"`
-	Issuer     string `yaml:"issuer"`
-	PolicyFile string `yaml:"policy_file"`
+	Listen       string `yaml:"listen"`
+	PublicURL    string `yaml:"public_url"`
+	Issuer       string `yaml:"issuer"`
+	PolicyFile   string `yaml:"policy_file"`
+	AuditLogPath string `yaml:"audit_log_path"`
 }
 
 type IdentityConfig struct {
