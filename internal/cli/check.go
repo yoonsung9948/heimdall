@@ -142,7 +142,7 @@ func runExplain(w io.Writer, e *policy.Engine, configPath, snapshotPath, clientN
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
-	identity, ok := findIdentity(upstream.BuildIdentityList(*cfg), clientName)
+	identity, ok := findIdentity(types.BuildIdentityList(*cfg), clientName)
 	if !ok {
 		return fmt.Errorf("client %q not found in config", clientName)
 	}

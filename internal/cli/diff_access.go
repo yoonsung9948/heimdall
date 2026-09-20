@@ -11,6 +11,7 @@ import (
 	"github.com/yoonsung9948/heimdall/internal/config"
 	"github.com/yoonsung9948/heimdall/internal/matrix"
 	"github.com/yoonsung9948/heimdall/internal/policy"
+	"github.com/yoonsung9948/heimdall/internal/types"
 	"github.com/yoonsung9948/heimdall/internal/upstream"
 )
 
@@ -38,7 +39,7 @@ the direction that actually matters for a CI gate.`,
 			if err != nil {
 				return fmt.Errorf("load config: %w", err)
 			}
-			identities := upstream.BuildIdentityList(*cfg)
+			identities := types.BuildIdentityList(*cfg)
 
 			snapshot, err := upstream.ReadFile(snapshotPath)
 			if err != nil {

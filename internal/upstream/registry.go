@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"maps"
 	"os"
 	"slices"
 	"strings"
@@ -13,14 +12,12 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/yoonsung9948/heimdall/internal/config"
-	"github.com/yoonsung9948/heimdall/internal/types"
 )
 
 var (
-	ErrEmptyClientName       = errors.New("empty client name")
+	ErrEmptyServerName       = errors.New("empty server name")
 	ErrMissingUpstreamClient = errors.New("missing upstream client")
-	ErrDuplicateClient       = errors.New("register duplicate client")
+	ErrDuplicateServer       = errors.New("register duplicate server")
 	ErrMissingTool           = errors.New("missing tool in route map")
 )
 
@@ -43,65 +40,78 @@ type ToolEntry struct {
 
 func NewRegistry() *Registry {
 	return &Registry{
-		routeMap:  make(map[string]string),
+		routeMap:  make(map[string]string), //prefixed server names
 		clientMap: make(map[string]UpstreamClient),
 		toolCache: make(map[string][]*mcp.Tool),
 	}
 }
 
-func (r *Registry) Register(ctx context.Context, clientName string, client UpstreamClient) error {
-	if clientName == "" {
-		return ErrEmptyClientName
+func (r *Registry) Register(ctx context.Context, serverName string, client UpstreamClient) error {
+	if serverName == "" {
+		return ErrEmptyServerName
 	}
 	if client == nil {
 		return ErrMissingUpstreamClient
 	}
 	tools, err := client.Tools(ctx)
 	if err != nil {
-		return fmt.Errorf("fetch tools for upstream %q: %w", clientName, err)
+		return fmt.Errorf("fetch tools for upstream %q: %w", serverName, err)
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if _, ok := r.clientMap[clientName]; ok {
-		return ErrDuplicateClient
+	if _, ok := r.clientMap[serverName]; ok {
+		return ErrDuplicateServer
 	}
-	r.clientMap[clientName] = client
+	r.clientMap[serverName] = client
 	for _, tool := range tools {
-		prefixed := clientName + "." + tool.Name
-		r.routeMap[prefixed] = clientName
+		prefixed := serverName + "." + tool.Name
+		r.routeMap[prefixed] = serverName
 		copied := *tool
 		copied.Name = prefixed
-		r.toolCache[clientName] = append(r.toolCache[clientName], &copied)
+		r.toolCache[serverName] = append(r.toolCache[serverName], &copied)
 	}
 	return nil
 }
 
-func (r *Registry) AllTools(ctx context.Context) ([]*mcp.Tool, error) {
+func (r *Registry) AllTools(ctx context.Context) []*mcp.Tool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	return slices.Concat(slices.Collect(maps.Values(r.toolCache))...), nil
+	out := make([]*mcp.Tool, 0, len(r.routeMap))
+	for _, tools := range r.toolCache {
+		for _, t := range tools {
+			cp := *t
+			out = append(out, &cp)
+		}
+	}
+	return out
 }
 
 func (r *Registry) ClientForTool(ctx context.Context, toolName string) (UpstreamClient, string, error) {
+	// returns unprefixed server name
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	clientName, ok := r.routeMap[toolName]
+	serverName, ok := r.routeMap[toolName]
 	if !ok {
 		return nil, "", ErrMissingTool
 	}
-	client, ok := r.clientMap[clientName]
+	client, ok := r.clientMap[serverName]
 	if !ok {
-		panic(fmt.Sprintf("invariant violated: route table references unknown upstream %q", clientName))
+		panic(fmt.Sprintf("invariant violated: route table references unknown upstream %q", serverName))
 	}
-	return client, clientName, nil
+	return client, serverName, nil
 }
 
 func (r *Registry) ToolsPerServer(ctx context.Context) map[string][]*mcp.Tool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	res := make(map[string][]*mcp.Tool, len(r.toolCache))
-	for client, tools := range r.toolCache {
-		res[client] = append([]*mcp.Tool(nil), tools...)
+	for serverName, tools := range r.toolCache {
+		out := make([]*mcp.Tool, 0, len(tools))
+		for _, t := range tools {
+			cp := *t
+			out = append(out, &cp)
+		}
+		res[serverName] = out
 	}
 	return res
 }
@@ -131,14 +141,6 @@ func ToolsFromSnapshot(s Snapshot) map[string][]*mcp.Tool {
 		res[te.ServerName] = append(res[te.ServerName], &mcp.Tool{
 			Name: te.ToolName,
 		})
-	}
-	return res
-}
-
-func BuildIdentityList(cfg config.Config) []types.Identity {
-	res := make([]types.Identity, 0, len(cfg.Identity.Clients))
-	for clientName, cc := range cfg.Identity.Clients {
-		res = append(res, types.IdentityFromClient(clientName, cc))
 	}
 	return res
 }

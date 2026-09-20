@@ -8,7 +8,7 @@ import (
 
 type Identity struct {
 	User   string
-	Client string
+	Client string // Downstream client credential name from identity.clients.
 	Groups []string
 }
 
@@ -34,4 +34,13 @@ func IdentityFromClient(name string, cc config.ClientConfig) Identity {
 		Client: name,
 		Groups: cc.Groups,
 	}
+}
+
+// BuildIdentityList returns the configured downstream client identities.
+func BuildIdentityList(cfg config.Config) []Identity {
+	res := make([]Identity, 0, len(cfg.Identity.Clients))
+	for clientName, cc := range cfg.Identity.Clients {
+		res = append(res, IdentityFromClient(clientName, cc))
+	}
+	return res
 }

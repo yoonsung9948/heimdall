@@ -12,6 +12,8 @@ type AuditLogger interface {
 }
 
 type Logger struct {
+	mu          sync.RWMutex
+	closed      bool
 	events      chan AuditEvent
 	w           io.Writer
 	dropped     atomic.Int64
@@ -32,12 +34,14 @@ func NewLogger(w io.Writer, bufferSize int) *Logger {
 }
 
 func (l *Logger) run() {
+	defer l.wg.Done()
 	enc := json.NewEncoder(l.w)
 	for {
 		select {
 		case event := <-l.events:
 			if err := enc.Encode(event); err != nil {
 				l.writeErrors.Add(1)
+				enc = json.NewEncoder(l.w)
 			}
 		case <-l.done:
 			for {
@@ -45,9 +49,9 @@ func (l *Logger) run() {
 				case event := <-l.events:
 					if err := enc.Encode(event); err != nil {
 						l.writeErrors.Add(1)
+						enc = json.NewEncoder(l.w)
 					}
 				default:
-					l.wg.Done()
 					return
 				}
 			}
@@ -56,6 +60,10 @@ func (l *Logger) run() {
 }
 
 func (l *Logger) Close() {
+	l.mu.Lock()
+	l.closed = true
+	l.mu.Unlock()
+
 	close(l.done)
 	l.wg.Wait()
 }
@@ -69,11 +77,12 @@ func (l *Logger) WriteErrors() int64 {
 }
 
 func (l *Logger) Log(event AuditEvent) {
-	select {
-	case <-l.done:
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+
+	if l.closed {
 		l.dropped.Add(1)
 		return
-	default:
 	}
 
 	select {

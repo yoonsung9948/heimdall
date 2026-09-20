@@ -25,7 +25,7 @@ func NewAuditEvent(req policy.Request, serverName string, decision policy.Decisi
 		ClientName:     req.Identity.Client,
 		ToolName:       req.Resource.Name,
 		ServerName:     serverName,
-		Groups:         req.Identity.Groups,
+		Groups:         append([]string(nil), req.Identity.Groups...),
 		DecisionAllow:  decision.Allow,
 		DecisionReason: decision.Reason,
 		RuleID:         decision.RuleID,

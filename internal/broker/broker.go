@@ -33,10 +33,10 @@ var (
 
 func NewBroker(pe *policy.Engine, rg *upstream.Registry, l audit.AuditLogger) (*broker, error) {
 	if pe == nil {
-		return &broker{}, ErrMissingPolicyEngine
+		return nil, ErrMissingPolicyEngine
 	}
 	if rg == nil {
-		return &broker{}, ErrMissingRegistry
+		return nil, ErrMissingRegistry
 	}
 	return &broker{
 		policyEngine: pe,
@@ -46,10 +46,7 @@ func NewBroker(pe *policy.Engine, rg *upstream.Registry, l audit.AuditLogger) (*
 }
 
 func (b *broker) Filter(ctx context.Context, identity types.Identity) ([]*mcp.Tool, error) {
-	allTools, err := b.registry.AllTools(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("getting all tools: %w", err)
-	}
+	allTools := b.registry.AllTools(ctx)
 	var filtered []*mcp.Tool
 	for _, tool := range allTools {
 		req := policy.Request{
@@ -84,9 +81,9 @@ func (b *broker) Route(
 	}
 	decision := b.policyEngine.Authorize(req)
 
-	client, clientName, err := b.registry.ClientForTool(ctx, toolName)
+	client, serverName, err := b.registry.ClientForTool(ctx, toolName)
 
-	auditEvent := audit.NewAuditEvent(req, clientName, decision, time.Now())
+	auditEvent := audit.NewAuditEvent(req, serverName, decision, time.Now())
 	b.logger.Log(auditEvent)
 
 	if !decision.Allow {
@@ -94,10 +91,10 @@ func (b *broker) Route(
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("getting client: %w", err)
+		return nil, fmt.Errorf("resolve upstream client: %w", err)
 	}
 
-	originalName := strings.TrimPrefix(toolName, clientName+".")
+	originalName := strings.TrimPrefix(toolName, serverName+".")
 	params.Name = originalName
 	res, err := client.Call(ctx, params)
 	if err != nil {

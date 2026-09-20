@@ -69,10 +69,7 @@ func Run(ctx context.Context, cfgPath string) (err error) {
 		},
 		nil,
 	)
-	tools, err := registry.AllTools(ctx)
-	if err != nil {
-		return fmt.Errorf("list all tools from registry: %w", err)
-	}
+	tools := registry.AllTools(ctx)
 	for _, t := range tools {
 		server.AddTool(t, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			identity, ok := types.IdentityFromContext(ctx)
@@ -150,7 +147,7 @@ func BuildRegistry(ctx context.Context, cfg *config.Config) (*upstream.Registry,
 			nil,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("client: %q: connect: %w", s, err)
+			return nil, fmt.Errorf("server %q: connect: %w", s, err)
 		}
 		client, err := upstream.NewSDKClient(session)
 		if err != nil {
@@ -158,7 +155,7 @@ func BuildRegistry(ctx context.Context, cfg *config.Config) (*upstream.Registry,
 		}
 		err = registry.Register(ctx, s, client)
 		if err != nil {
-			return nil, fmt.Errorf("register client: %w", err)
+			return nil, fmt.Errorf("register server %q: %w", s, err)
 		}
 	}
 	return registry, nil

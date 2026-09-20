@@ -3,7 +3,7 @@ package config
 type Config struct {
 	Gateway  GatewayConfig           `yaml:"gateway"`
 	Identity IdentityConfig          `yaml:"identity"`
-	Servers  map[string]ServerConfig `yaml:"servers"`
+	Servers  map[string]ServerConfig `yaml:"servers"` // Upstream MCP servers, keyed by server name.
 }
 
 type GatewayConfig struct {
@@ -19,12 +19,15 @@ type IdentityConfig struct {
 	Clients  map[string]ClientConfig `yaml:"clients"`
 }
 
+// ClientConfig defines a downstream client identity and its credentials.
 type ClientConfig struct {
 	User   string   `yaml:"user"`
 	Groups []string `yaml:"groups"`
 	Roles  []string `yaml:"roles"`
 	Key    string   `yaml:"key"`
 }
+
+// ServerConfig defines how Heimdall connects to an upstream MCP server.
 type ServerConfig struct {
 	Transport TransportConfig `yaml:"transport"`
 }

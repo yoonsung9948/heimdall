@@ -9,6 +9,7 @@ import (
 	"github.com/yoonsung9948/heimdall/internal/config"
 	"github.com/yoonsung9948/heimdall/internal/matrix"
 	"github.com/yoonsung9948/heimdall/internal/policy"
+	"github.com/yoonsung9948/heimdall/internal/types"
 	"github.com/yoonsung9948/heimdall/internal/upstream"
 )
 
@@ -56,7 +57,7 @@ privilege expansion fails the build instead of merging silently.`,
 			if err != nil {
 				return fmt.Errorf("load config: %w", err)
 			}
-			identities := upstream.BuildIdentityList(*cfg)
+			identities := types.BuildIdentityList(*cfg)
 
 			snapshot, err := upstream.ReadFile(snapshotPath)
 			if err != nil {

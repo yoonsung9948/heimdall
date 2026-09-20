@@ -19,6 +19,7 @@ var (
 	ErrInvalidCredential = errors.New("invalid credential")
 )
 
+// ClientCredentials associates a downstream client's API key with its identity.
 type ClientCredentials struct {
 	APIKey   string
 	Name     string
